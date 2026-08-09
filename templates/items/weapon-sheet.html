@@ -1,0 +1,25 @@
+<!- basic weapon item sheet - template used by the ItemSheet class ->
+<section class="sheet actor-sheet">
+  <h2>Weapon</h2>
+  <div class="sheet-body">
+    <label>Name: <input name="name" /></label>
+    <div class="sheet-row">
+      <label>Damage: <input name="data.damage" type="number" /></label>
+      <label>Mag cap: <input name="data.magCap" type="number" /></label>
+      <label>Mag current: <input name="data.magCurrent" type="number" /></label>
+    </div>
+    <div class="sheet-row">
+      <label>Spray (X): <input name="data.spray" type="number" /></label>
+      <label>Slow (X): <input name="data.slow" type="number" /></label>
+      <label>Area (X): <input name="data.area" type="number" /></label>
+    </div>
+    <div class="sheet-row">
+      <label>Burn (notes): <input name="data.burn" /></label>
+    </div>
+    <div class="sheet-row">
+      <button class="button reload-btn">Reload</button>
+      <button class="button shoot-btn">Fire</button>
+    </div>
+    <div class="sheet-row">Slow counter: <span>{{data.data.slowCounter}}</span> <button class="button" onclick="(function(){return false;})()">Manual -</button></div>
+  </div>
+</section>
