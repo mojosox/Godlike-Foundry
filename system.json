@@ -1,40 +1,74 @@
 {
+  "id": "godlike-foundry",
   "name": "godlike-foundry",
   "title": "Godlike (Foundry System)",
   "description": "A Foundry VTT system implementing One-Roll Engine mechanics adapted for the Godlike TTRPG.",
   "version": "0.0.1",
-   "compatibility": {
-    "minimum": 14,
+  "compatibility": {
+    "minimum": 12,
     "verified": 14
-   },
-     "authors": [{
+  },
+  "authors": [
+    {
       "name": "mojosox",
-       "url": "N/A",
-      "email": "N/A",
-       "discord": "N/A"
-    }],
+      "url": "https://github.com/mojosox",
+      "email": "o.dawson14@gmail.com",
+      "discord": "mojosox#0000"
+    }
+  ],
   "esmodules": [
     "scripts/godlike.js",
     "scripts/item-sheet.js",
-    "scripts/ore.js"],
-  "styles": ["godslike.css"],
+    "scripts/ore.js"
+  ],
+  "styles": [
+    "styles/godlike.css"
+  ],
   "packs": [
     {
       "name": "godlike-actors",
       "label": "Godlike Actors",
-      "type": "Actor"
+      "path": "packs/godlike-actors.db",
+      "type": "Actor",
+      "id": "godlike-actors"
     },
     {
       "name": "godlike-items",
       "label": "Godlike Items",
-      "type": "Item"
-    }],
-   "languages": [],
-  "styles": [
-    "styles/godlike.css"
+      "path": "packs/godlike-items.db",
+      "type": "Item",
+      "id": "godlike-items"
+    }
   ],
-  "license": "MIT",
-  "download": "https://github.com/mojosox/Godlike-Foundry/archive/refs/heads/main.zip",
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "documentTypes": {
+    "Actor": {
+      "hero": { "htmlFields": ["background.biography"] },
+      "villain": { "htmlFields": ["background.biography"] },
+      "pawn": {}
+    },
+    "Item": {
+      "weapon": {},
+      "magazine": {}
+    }
+  },
+  "socket": false,
+  "initiative": "1d20",
+  "grid": {
+    "distance": 10,
+    "units": "ft"
+  },
+  "primaryTokenAttribute": "resources.health",
+  "secondaryTokenAttribute": "resources.power",
   "url": "https://github.com/mojosox/Godlike-Foundry",
+  "manifest": "https://raw.githubusercontent.com/mojosox/Godlike-Foundry/main/system.json",
+  "download": "https://github.com/mojosox/Godlike-Foundry/archive/refs/heads/main.zip",
+  "license": "MIT",
   "readme": "README.md"
 }
