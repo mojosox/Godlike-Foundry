@@ -1,0 +1,13 @@
+/* Basic styles for the Godlike character sheet mockup */
+:root{--accent:#8b0000;--muted:#666}
+.actor-sheet{font-family:Arial, Helvetica, sans-serif; padding:12px;}
+.sheet-row{display:flex; gap:12px; margin-bottom:8px}
+.box{border:1px solid #ccc; padding:8px; border-radius:4px}
+.field-label{font-weight:700; font-size:0.85em}
+.field-input{width:100%; padding:4px}
+.weapon-list{display:flex; flex-direction:column; gap:6px}
+.weapon-card{border:1px solid #999; padding:8px; display:flex; gap:8px; align-items:center}
+.weapon-card.disabled{opacity:0.4}
+.button{background:var(--accent); color:white; padding:6px 8px; border-radius:4px; cursor:pointer}
+.small{font-size:0.85em}
+.roll-output{border:1px dashed #ccc; padding:8px; margin-top:8px; white-space:pre-wrap}

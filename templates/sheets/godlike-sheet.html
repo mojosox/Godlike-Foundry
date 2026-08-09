@@ -1,0 +1,67 @@
+<!-- templates/sheets/godlike-sheet.html -->
+<section class="actor-sheet godlike-sheet">
+  <header>
+    <h1>{{actor.name}}</h1>
+  </header>
+
+  <div class="sheet-body">
+    <div class="columns">
+      <div class="column">
+        <section class="box">
+          <h3>Attributes</h3>
+          <div class="field">
+            <label>Brains</label>
+            <input type="number" name="data.attributes.brains" value="{{system.attributes.brains}}" />
+          </div>
+          <div class="field">
+            <label>Command</label>
+            <input type="number" name="data.attributes.command" value="{{system.attributes.command}}" />
+          </div>
+          <div class="field">
+            <label>Cool</label>
+            <input type="number" name="data.attributes.cool" value="{{system.attributes.cool}}" />
+          </div>
+
+          <!-- Willpower UI -->
+          <hr/>
+          <h3>Willpower</h3>
+          <div class="field">
+            <label>Base Will</label>
+            <input class="base-will-input" type="number" name="data.baseWill" value="{{system.baseWill}}" min="0" />
+          </div>
+          <div class="field">
+            <label>Current Will</label>
+            <button type="button" class="will-decr">-</button>
+            <input class="will-current-input" type="number" name="data.willCurrent" value="{{system.willCurrent}}{{#unless system.willCurrent}}{{system.baseWill}}{{/unless}}" min="0" />
+            <button type="button" class="will-incr">+</button>
+          </div>
+          <div class="field">
+            <input class="will-slider" type="range" min="0" max="{{system.baseWill}}" value="{{system.willCurrent}}{{#unless system.willCurrent}}{{system.baseWill}}{{/unless}}" />
+            <div class="small">Will: <span class="will-display">{{system.willCurrent}}{{#unless system.willCurrent}}{{system.baseWill}}{{/unless}}</span>/<span class="will-max">{{system.baseWill}}</span></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="column">
+        <section class="box">
+          <h3>Skills</h3>
+          <div class="small">(Use the Items sidebar to add skills/items)</div>
+        </section>
+
+        <section class="box">
+          <h3>Weapons (quick)</h3>
+          <div id="weapon-quick-list">
+            <!-- weapons are shown by Item sheets or via Items sidebar in full implementation -->
+          </div>
+        </section>
+      </div>
+
+      <div class="column">
+        <section class="box">
+          <h3>Notes</h3>
+          <textarea name="data.notes">{{system.notes}}</textarea>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
