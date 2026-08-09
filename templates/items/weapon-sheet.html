@@ -1,4 +1,4 @@
-<!- basic weapon item sheet - template used by the ItemSheet class ->
+<!-- templates/items/weapon-sheet.html -->
 <section class="sheet actor-sheet">
   <h2>Weapon</h2>
   <div class="sheet-body">
@@ -14,12 +14,18 @@
       <label>Area (X): <input name="data.area" type="number" /></label>
     </div>
     <div class="sheet-row">
-      <label>Burn (notes): <input name="data.burn" /></label>
+      <label>Burn (enable): <input name="data.burnEnabled" type="checkbox" value="1" {{#if data.burnEnabled}}checked{{/if}} /></label>
+      <label>Burn (X): <input name="data.burnValue" type="number" value="{{data.burnValue||0}}" min="0" /></label>
+      <label>Burn (note): <input name="data.burnNote" value="{{data.burnNote||''}}" /></label>
     </div>
     <div class="sheet-row">
       <button class="button reload-btn">Reload</button>
-      <button class="button shoot-btn">Fire</button>
+      <button class="button shoot-btn" {{#if data.slowCounter}}disabled{{/if}}>Fire</button>
     </div>
-    <div class="sheet-row">Slow counter: <span>{{data.data.slowCounter}}</span> <button class="button" onclick="(function(){return false;})()">Manual -</button></div>
+    <div class="sheet-row">Slow counter: <span>{{data.slowCounter}}</span>
+      {{#if data.slowCounter}}
+        <button type="button" class="button manual-decrement">Decrement</button>
+      {{/if}}
+    </div>
   </div>
 </section>

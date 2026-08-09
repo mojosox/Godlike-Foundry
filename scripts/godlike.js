@@ -1,7 +1,7 @@
-// scripts/godlike.js - Actor sheet registration and Willpower handling
+// scripts/godlike.js - Actor sheet registration, Willpower handling, and Combat turn hook
 
 Hooks.once('init', ()=>{
-  console.log('Godlike | Initializing Godlike system (Willpower support)');
+  console.log('Godlike | Initializing Godlike system (Willpower support + combat integration)');
 
   class GodlikeActorSheet extends ActorSheet {
     static get defaultOptions(){
@@ -16,7 +16,6 @@ Hooks.once('init', ()=>{
 
     getData(){
       const data = super.getData();
-      // Provide a convenient reference to actor data as 'system'
       data.system = data.actor.data.data;
       return data;
     }
@@ -55,13 +54,11 @@ Hooks.once('init', ()=>{
         const cur = Number(this.actor.data.data.willCurrent || 0);
         const newCur = Math.min(cur, baseVal);
         await this.actor.update({'data.baseWill': baseVal, 'data.willCurrent': newCur});
-        // refresh UI
         this._refreshWillUI(html, newCur);
       });
 
       html.find('.will-slider').on('input', async ev => {
         const val = Number(ev.currentTarget.value || 0);
-        // Update displayed value live but don't persist until change event
         html.find('.will-display').text(val);
       });
 
@@ -96,6 +93,30 @@ Hooks.once('init', ()=>{
       }
     } catch(err) {
       console.error('Godlike | Failed to set default willCurrent on actor creation', err);
+    }
+  });
+
+  // Combat hook: decrement slowCounter on the actor whose turn just started
+  Hooks.on('updateCombat', async (combat, changed, options, userId) => {
+    // Only act when the turn has changed
+    if (!('turn' in changed)) return;
+    try{
+      const combatant = combat.combatant; // the active combatant after the update
+      if(!combatant) return;
+      const actor = combatant.actor;
+      if(!actor) return;
+
+      // Decrement slowCounter for each weapon item owned by this actor
+      for(const it of actor.items.filter(i => i.type === 'weapon')){
+        const sc = Number(getProperty(it.data, 'data.slowCounter') || 0);
+        if(sc > 0){
+          await it.update({'data.slowCounter': Math.max(0, sc - 1)});
+          // If it reaches zero, also remove any disabled UI flag if used
+          if(sc - 1 <= 0) await it.unsetFlag('one-roll-engine','disabled');
+        }
+      }
+    } catch(err){
+      console.error('Godlike | Error decrementing slow counters on combat update', err);
     }
   });
 
