@@ -81,7 +81,9 @@ Hooks.once('init', ()=>{
     }
   }
 
-  Actors.registerSheet('godlike', GodlikeActorSheet, { makeDefault: true });
+  // Register the sheet for the system and for the actor types used by this system
+  // Use the system id from system.json ('godlike-foundry') and register the sheet name 'godlike'
+  Actors.registerSheet('godlike-foundry', 'godlike', GodlikeActorSheet, { types: ['hero','villain','pawn'], makeDefault: true });
 
   // Ensure newly created actors have willCurrent defaulted to baseWill
   Hooks.on('createActor', async (actor, options, userId) => {
