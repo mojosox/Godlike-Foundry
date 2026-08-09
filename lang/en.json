@@ -1,0 +1,25 @@
+{
+  "godlike-foundry": {
+    "NAME": "Godlike (Foundry System)",
+    "DESCRIPTION": "A Foundry VTT system implementing One-Roll Engine mechanics adapted for the Godlike TTRPG."
+  },
+  "actors": {
+    "willpower": "Willpower",
+    "baseWill": "Base Will",
+    "currentWill": "Current Will"
+  },
+  "items": {
+    "fire": "Fire",
+    "reload": "Reload",
+    "burn": "Burn"
+  },
+  "dialog": {
+    "fireTitle": "Fire Weapon",
+    "modifier": "Modifier",
+    "hardDice": "Hard dice",
+    "wiggleDice": "Wiggle dice",
+    "wiggleValues": "Wiggle values (comma-separated)",
+    "useSpray": "Use Spray",
+    "useArea": "Use Area"
+  }
+}
