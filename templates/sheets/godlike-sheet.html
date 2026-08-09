@@ -1,122 +1,67 @@
-<!-- Character sheet mockup for Godlike - fields laid out for the Godlike sheet but wired to Foundry-friendly classes -->
-<section class="actor-sheet">
-  <h2>Godlike Character Sheet (mockup)</h2>
-  <div class="sheet-row">
-    <div class="box" style="flex:1">
-      <div class="field-label">Name</div>
-      <input class="field-input" name="name" />
-      <div class="sheet-row">
-        <div style="flex:1">
-          <div class="field-label">Attributes</div>
-          <div class="sheet-row">
-            <div style="flex:1"><label>Brains<br/><input class="field-input" name="attr.brains" /></label></div>
-            <div style="flex:1"><label>Body<br/><input class="field-input" name="attr.body" /></label></div>
-            <div style="flex:1"><label>Cool<br/><input class="field-input" name="attr.cool" /></label></div>
+<!-- templates/sheets/godlike-sheet.html -->
+<section class="actor-sheet godlike-sheet">
+  <header>
+    <h1>{{actor.name}}</h1>
+  </header>
+
+  <div class="sheet-body">
+    <div class="columns">
+      <div class="column">
+        <section class="box">
+          <h3>Attributes</h3>
+          <div class="field">
+            <label>Brains</label>
+            <input type="number" name="data.attributes.brains" value="{{system.attributes.brains}}" />
           </div>
-        </div>
-        <div style="flex:1">
-          <div class="field-label">Vitals</div>
-          <label>Armor 1: <input name="armor1"/></label><br/>
-          <label>Armor 2: <input name="armor2"/></label>
-        </div>
+          <div class="field">
+            <label>Command</label>
+            <input type="number" name="data.attributes.command" value="{{system.attributes.command}}" />
+          </div>
+          <div class="field">
+            <label>Cool</label>
+            <input type="number" name="data.attributes.cool" value="{{system.attributes.cool}}" />
+          </div>
+
+          <!-- Willpower UI -->
+          <hr/>
+          <h3>Willpower</h3>
+          <div class="field">
+            <label>Base Will</label>
+            <input class="base-will-input" type="number" name="data.baseWill" value="{{system.baseWill}}" min="0" />
+          </div>
+          <div class="field">
+            <label>Current Will</label>
+            <button type="button" class="will-decr">-</button>
+            <input class="will-current-input" type="number" name="data.willCurrent" value="{{system.willCurrent}}{{#unless system.willCurrent}}{{system.baseWill}}{{/unless}}" min="0" />
+            <button type="button" class="will-incr">+</button>
+          </div>
+          <div class="field">
+            <input class="will-slider" type="range" min="0" max="{{system.baseWill}}" value="{{system.willCurrent}}{{#unless system.willCurrent}}{{system.baseWill}}{{/unless}}" />
+            <div class="small">Will: <span class="will-display">{{system.willCurrent}}{{#unless system.willCurrent}}{{system.baseWill}}{{/unless}}</span>/<span class="will-max">{{system.baseWill}}</span></div>
+          </div>
+        </section>
       </div>
-      <div class="field-label">Motivation</div>
-      <input class="field-input" name="motivation" />
+
+      <div class="column">
+        <section class="box">
+          <h3>Skills</h3>
+          <div class="small">(Use the Items sidebar to add skills/items)</div>
+        </section>
+
+        <section class="box">
+          <h3>Weapons (quick)</h3>
+          <div id="weapon-quick-list">
+            <!-- weapons are shown by Item sheets or via Items sidebar in full implementation -->
+          </div>
+        </section>
+      </div>
+
+      <div class="column">
+        <section class="box">
+          <h3>Notes</h3>
+          <textarea name="data.notes">{{system.notes}}</textarea>
+        </section>
+      </div>
     </div>
-    <div class="box" style="width:360px">
-      <div class="field-label">Skills / Dicepools</div>
-      <div><label>Example Skill: <input class="field-input" name="skills.example" /></label></div>
-      <div style="margin-top:8px"><button class="button" id="open-items">Open Weapons (item sheet)</button></div>
-    </div>
-  </div>
-  <div class="box">
-    <h3>Weapons (inline mockup)</h3>
-    <div class="weapon-list" id="weapon-list"></div>
-    <div style="margin-top:8px">
-      <button class="button" id="add-weapon">Add Weapon</button>
-    </div>
-  </div>
-  <div class="box">
-    <h3>Roll Output</h3>
-    <div id="roll-output" class="roll-output"></div>
   </div>
 </section>
-
-<script>
-  // Minimal client-side mock behaviour for the sheet to let you preview the UI and try sample rolls.
-  const weaponList = document.getElementById('weapon-list');
-  const rollOutput = document.getElementById('roll-output');
-
-  function renderWeapons(){
-    weaponList.innerHTML='';
-    const weapons = window.mockWeapons = window.mockWeapons||[];
-    weapons.forEach((w,idx)=>{
-      const el = document.createElement('div'); el.className='weapon-card';
-      if(w.slowCounter>0) el.classList.add('disabled');
-      el.innerHTML = `<div style="flex:1"><strong>${w.name||'Unnamed'}</strong><div class="small">Damage ${w.damage||0} | Ammo ${w.magCurrent||0}/${w.magCap||0}</div></div>
-        <div style="display:flex;flex-direction:column; gap:6px"><button class="button" data-idx="${idx}" data-action="shoot">Shoot</button><button data-idx="${idx}" data-action="edit">Edit</button></div>`;
-      weaponList.appendChild(el);
-    });
-  }
-
-  document.getElementById('add-weapon').addEventListener('click', ()=>{
-    window.mockWeapons = window.mockWeapons || [];
-    window.mockWeapons.push({name:'Rifle', damage:2, magCap:6, magCurrent:6, spray:0, slow:0, area:0, burn:'', slowCounter:0});
-    renderWeapons();
-  });
-
-  weaponList.addEventListener('click', async (ev)=>{
-    const btn = ev.target.closest('button'); if(!btn) return;
-    const idx = Number(btn.dataset.idx); const action = btn.dataset.action;
-    const w = window.mockWeapons[idx];
-    if(action=='shoot'){
-      // open modifier prompt
-      const mod = Number(prompt('Modifier (add/subtract dice):', '0'))||0;
-      // open dice options
-      const hard = Number(prompt('Hard dice count:', '0'))||0;
-      const wiggle = Number(prompt('Wiggle dice count:', '0'))||0;
-      // call into ore-roll helper exposed on window (from ore.js in the real system)
-      const rp = await window.mockORERoll({actor:null, weapon:w, skillPool:3, mod, hard, wiggle});
-      rollOutput.textContent = JSON.stringify(rp, null, 2);
-      // consume ammo: spray uses dicePool if spray>0 and toggled
-      const sprayOn = w.spray>0 && confirm('Use Spray?');
-      const dicePool = Math.min(10, Math.max(0, 3 + mod));
-      const ammoUsed = sprayOn ? dicePool : 1;
-      w.magCurrent = Math.max(0, w.magCurrent - ammoUsed);
-      // set slow
-      if(w.slow>0) { w.slowCounter = w.slow; }
-      // decrement global slow counters automatically (simple rule here)
-      window.mockWeapons.forEach(x=>{ if(x!==w && x.slowCounter>0) x.slowCounter = Math.max(0,x.slowCounter-1); })
-      renderWeapons();
-    }
-    if(action=='edit'){
-      const name = prompt('Weapon name', w.name)||w.name;
-      w.name = name;
-      renderWeapons();
-    }
-  });
-
-  // A simple mockable ORE roll that will be replaced by the real ore.js when running in Foundry.
-  window.mockORERoll = async function({actor, weapon, skillPool, mod=0, hard=0, wiggle=0}){
-    // Build dice pool with limits
-    const basePool = Math.max(0, (skillPool||0) + (mod||0));
-    const pool = Math.min(10, basePool + hard + wiggle);
-    const rolls = [];
-    for(let i=0;i<pool;i++) rolls.push(1+Math.floor(Math.random()*10));
-    // compute matches
-    const counts = {};
-    rolls.forEach(r=>counts[r]=(counts[r]||0)+1);
-    const matches = Object.entries(counts).map(([v,c])=>({value:Number(v),width:c})).sort((a,b)=>b.width-a.width||b.value-b.value);
-    // height->location mapping
-    const loc = (h)=>{ if(h==10) return 'Head'; if(h>=7) return 'Torso'; if(h>=5) return 'Left arm'; if(h>=3) return 'Right arm'; if(h==2) return 'Left leg'; return 'Right leg'; }
-    // damage per match (base + width)
-    const damages = matches.map(m=>({height:m.value, width:m.width, location:loc(m.value), damage:(weapon.damage||0)+m.width}));
-    return {rolls,matches,damages};
-  }
-
-  document.getElementById('open-items').addEventListener('click', ()=>alert('In the full system this would open the Items sidebar with weapon item sheets.'));
-
-  // initial
-  window.mockWeapons=[{name:'Rifle',damage:2,magCap:6,magCurrent:6,spray:1,slow:1,area:0,burn:'Hot barrel',slowCounter:0}];
-  renderWeapons();
-</script>
