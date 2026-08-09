@@ -1,124 +1,143 @@
-// ore.js - a simple One-Roll Engine (ORE) implementation for Foundry
+// ore.js - updated to use Foundry Roll API and Dice3D for visuals
 
-// This file implements the core rolling behaviour you requested in a way that can
-// be connected to the rest of the Foundry system. It handles:
-// - dice pool building (skill + modifiers + hard + wiggle)
-// - cap of 10 dice total
-// - hard dice and wiggle dice (wiggle dice can be set by player after roll)
-// - spray, slow, area, burn handling for weapons
-// - ammo consumption and simple magazine support
-// - conversion of height->location using your mapping
-// - damage calculation: base weapon damage + width
+window.godlike_ore_roll = async function({actor, weapon, skillPool=0, mod=0, hard=0, wiggleCount=0, wiggleValues=[], sprayOn=false, areaExtra=0}){
+  // weapon may be an Item instance or plain data
+  const itemObj = weapon?.data ? weapon : null;
+  const w = itemObj ? weapon.data.data : weapon || {};
 
-window.godlike_ore_roll = async function({actor, weapon, skillPool=0, mod=0, hard=0, wiggle=0, sprayOn=false, areaExtra=0}){
-  // Read weapon data (when Item object passed, else accept plain object)
-  const w = weapon?.data ? weapon.data.data : weapon;
-  const baseDamage = Number(w.damage||0);
-  const magCurrent = Number(w.magCurrent||0);
-  const magCap = Number(w.magCap||0);
+  const baseDamage = Number(w.damage||w.baseDamage||0);
+  const magCurrent = Number(w.magCurrent||w.magCurrent||0);
+  const magCap = Number(w.magCap||w.magCap||0);
   const sprayVal = Number(w.spray||0);
   const slowVal = Number(w.slow||0);
   const areaVal = Number(w.area||0) || areaExtra;
+  const burnEnabled = Boolean(w.burnEnabled || false);
+  const burnValue = Number(w.burnValue || 0);
+  const burnNote = String(w.burnNote || '');
 
-  // Build dice pool
-  const skill = Number(skillPool||0);
-  let pool = Math.max(0, skill + Number(mod||0));
-  // include hard & wiggle
-  hard = Math.max(0, Number(hard||0));
-  wiggle = Math.max(0, Number(wiggle||0));
-  // cap at 10
-  const availableCap = 10;
-  if(pool + hard + wiggle > availableCap){
-    // trim normal pool first, prefer keeping hard/wiggle
-    const overflow = (pool + hard + wiggle) - availableCap;
-    pool = Math.max(0, pool - overflow);
-  }
-  const totalDice = pool + hard + wiggle;
+  // Build base pool (attribute/skill contributions should be passed in skillPool param)
+  let poolBase = Math.max(0, Number(skillPool||0) + Number(mod||0));
+  if(sprayOn && sprayVal>0) poolBase += Number(sprayVal);
 
-  // Ammo check and consumption
-  let ammoUsed = 1;
-  if(sprayOn && sprayVal>0){ ammoUsed = pool; }
-  // If not enough ammo, reduce dice
-  if(magCurrent < ammoUsed){
-    const deficit = ammoUsed - magCurrent;
-    // reduce pool to reflect less ammo when spraying
-    if(sprayOn && pool>0){
-      pool = Math.max(0, pool - deficit);
-      ammoUsed = Math.min(ammoUsed, magCurrent);
-    } else if(magCurrent<=0){
-      ui.notifications.warn('No ammo to fire');
-      return {error:'no-ammo'};
-    }
+  // Ensure hard + wiggle are not added on top of pool; they must be <= pool
+  let hardCount = Math.max(0, Number(hard||0));
+  let wigCount = Math.max(0, Number(wiggleCount||0));
+  if(hardCount + wigCount > poolBase){
+    const overflow = hardCount + wigCount - poolBase;
+    // Trim wiggle first
+    const trimWig = Math.min(overflow, wigCount);
+    wigCount -= trimWig;
+    const remaining = overflow - trimWig;
+    hardCount = Math.max(0, hardCount - remaining);
   }
 
-  // perform the dice rolls
-  const rolls = [];
-  for(let i=0;i<pool;i++) rolls.push({value:1+Math.floor(Math.random()*10),type:'normal'});
-  for(let i=0;i<hard;i++) rolls.push({value:1+Math.floor(Math.random()*10),type:'hard'});
-  for(let i=0;i<wiggle;i++) rolls.push({value:1+Math.floor(Math.random()*10),type:'wiggle'});
+  const normalDice = Math.max(0, poolBase - hardCount - wigCount);
+  const totalDice = normalDice + hardCount + wigCount;
 
-  // Allow wiggle dice manual assignment after roll: ask user which value for each wiggle
-  for(const d of rolls.filter(r=>r.type==='wiggle')){
-    const choice = await new Promise(resolve=>{
-      const val = Number(prompt('Pick value for a Wiggle die (1-10):', String(d.value))) || d.value;
-      resolve(val);
-    });
-    d.value = Number(choice);
+  // Enforce absolute cap of 10
+  if(totalDice > 10){
+    // trim normalDice down first (preserve hard/wiggle as requested)
+    const overflow = totalDice - 10;
+    const newNormal = Math.max(0, normalDice - overflow);
+    const removed = normalDice - newNormal;
+    normalDice = newNormal; // eslint-disable-line no-undef
   }
 
-  // Build counts
+  // Determine ammo needed
+  let ammoNeeded = 1;
+  if(sprayOn && sprayVal>0){ ammoNeeded = poolBase; }
+
+  // Check magazine availability (if Item present, update on it)
+  let actualMag = magCurrent;
+  if(itemObj){ actualMag = Number(itemObj.data.data.magCurrent||0); }
+  if(actualMag < ammoNeeded){
+    ui.notifications.warn(`Not enough ammo in ${weapon.name || w.name}; needs ${ammoNeeded}, has ${actualMag}`);
+    // For now, block the firing
+    return {error:'no-ammo'};
+  }
+
+  // Roll normal dice via Roll API (so Dice3D can animate them)
+  let normalRoll = null;
+  if(normalDice > 0){
+    const formula = `${normalDice}d10`;
+    normalRoll = await new Roll(formula).evaluate({async:true});
+    // Show 3D animation if available
+    if(game.dice3d) await game.dice3d.showForRoll(normalRoll, game.user, true);
+  }
+
+  // Build final rolls array: hard dice (value 10), wiggle dice (values from wiggleValues if provided, else random), normal dice (from normalRoll results)
+  const finalRolls = [];
+  for(let i=0;i<hardCount;i++) finalRolls.push({value:10, type:'hard'});
+
+  // Wiggle values: if provided array length < wigCount, generate random for missing
+  for(let i=0;i<wigCount;i++){
+    const val = (Array.isArray(wiggleValues) && wiggleValues[i] !== undefined) ? Number(wiggleValues[i]) : (1 + Math.floor(Math.random()*10));
+    finalRolls.push({value: val, type: 'wiggle'});
+  }
+
+  if(normalRoll){
+    // extract numeric values
+    const results = normalRoll.terms[0].results.map(r => r.result);
+    for(const v of results) finalRolls.push({value:v, type:'normal'});
+  }
+
+  // Now compute matches (group by face value)
   const counts = {};
-  for(const d of rolls){ counts[d.value] = (counts[d.value]||0) + 1; }
-  // For spray: each distinct matching set should be treated separately
-  const matches = Object.entries(counts).map(([val,cnt])=>({height: Number(val), width: cnt})).sort((a,b)=> b.width - a.width || b.height - a.height);
+  for(const d of finalRolls) counts[d.value] = (counts[d.value]||0) + 1;
+  const matches = Object.entries(counts).map(([val,cnt]) => ({height: Number(val), width: cnt})).sort((a,b)=> b.width - a.width || b.height - a.height);
 
-  // If sprayOn, we may create multiple damage results per match
-  const results = [];
-  for(const m of matches){
-    const damage = baseDamage + m.width; // per your rule
-    results.push({height:m.height,width:m.width,damage,location:mapHeightToLocation(m.height)});
-  }
-
-  // Handle area(X): roll X dice separately and report locations
-  const areaRolls = [];
-  if(areaVal>0){
-    for(let i=0;i<areaVal;i++){
-      const v = 1+Math.floor(Math.random()*10);
-      areaRolls.push({value:v,location:mapHeightToLocation(v)});
+  // Build damage results: if Spray was used produce separate lines for all matches; otherwise choose best match
+  let damageResults = [];
+  if(sprayOn && matches.length > 1){
+    for(const m of matches){
+      const dmg = baseDamage + m.width;
+      damageResults.push({height: m.height, width: m.width, damage: dmg, location: mapHeightToLocation(m.height)});
+    }
+  } else {
+    if(matches.length>0){
+      const best = matches[0];
+      const dmg = baseDamage + best.width;
+      damageResults.push({height: best.height, width: best.width, damage: dmg, location: mapHeightToLocation(best.height)});
+    } else {
+      // no matches: treat highest die as height with width 1 (conservative approach)
+      const highest = finalRolls.reduce((a,b)=> a.value>b.value?a:b);
+      const dmg = baseDamage + 1;
+      damageResults.push({height: highest.value, width: 1, damage: dmg, location: mapHeightToLocation(highest.value)});
     }
   }
 
-  // Decrement slow counters on actor weapons automatically (if actor provided and has items)
+  // Area rolls
+  const areaResults = [];
+  if(areaVal>0){
+    const aRoll = await new Roll(`${areaVal}d10`).evaluate({async:true});
+    if(game.dice3d) await game.dice3d.showForRoll(aRoll, game.user, true);
+    const avals = aRoll.terms[0].results.map(r=>r.result);
+    for(const av of avals) areaResults.push({value: av, location: mapHeightToLocation(av)});
+  }
+
+  // Deduct ammo and apply slow cooldown on item if present
+  if(itemObj){
+    const newMag = Math.max(0, Number(itemObj.data.data.magCurrent||0) - ammoNeeded);
+    await itemObj.update({'data.magCurrent': newMag});
+    if(slowVal>0) await itemObj.update({'data.slowCounter': slowVal});
+  }
+
+  // Decrement slow counters automatically for the actor's other weapons
   if(actor && actor.items){
-    // find other weapons and decrement their slowCounter if >0
     for(const it of actor.items.filter(i=>i.type==='weapon')){
       const sc = Number(it.data.data.slowCounter||0);
-      if(sc>0){
-        it.update({'data.slowCounter': Math.max(0, sc-1)});
-      }
-    }
-    // set slow on this weapon
-    if(slowVal>0){
-      if(weapon.update) await weapon.update({'data.slowCounter': slowVal});
-      else w.slowCounter = slowVal;
-    }
-    // deduct ammo from the weapon's magazine
-    if(weapon.update){
-      const newMag = Math.max(0, (Number(w.magCurrent||0) - ammoUsed));
-      await weapon.update({'data.magCurrent': newMag});
+      if(sc>0){ await it.update({'data.slowCounter': Math.max(0, sc-1)}); }
     }
   }
 
-  // Create a chat message summarizing the roll
-  const chatContent = buildChatHTML({actor,weapon,w,rolls,matches,results,areaRolls,ammoUsed});
-  ChatMessage.create({user:game.user.id, speaker:{actor:actor?.id||null}, content:chatContent});
+  // Build chat message including Burn info per damage line
+  const chatContent = buildChatHTML({actor, weapon: itemObj || w, finalRolls, matches, damageResults, areaResults, ammoUsed, burnEnabled, burnValue, burnNote});
+  ChatMessage.create({user: game.user.id, speaker: ChatMessage.getSpeaker({actor: actor}), content: chatContent});
 
-  return {rolls,matches,results,areaRolls,ammoUsed};
+  return {finalRolls, matches, damageResults, areaResults};
 }
 
 function mapHeightToLocation(h){
-  // height mapping you supplied:
-  // 10 = Head, 7-9 = Torso, 5-6 = Left arm, 3-4 = Right arm, 2 = left leg, 1 = right leg
   if(h==10) return 'Head';
   if(h>=7 && h<=9) return 'Torso';
   if(h>=5 && h<=6) return 'Left arm';
@@ -127,12 +146,13 @@ function mapHeightToLocation(h){
   return 'Right leg';
 }
 
-function buildChatHTML({actor,weapon,w,rolls,matches,results,areaRolls,ammoUsed}){
-  const header = `<h3>ORE Attack: ${weapon?.name||w?.name||'Weapon'}</h3>`;
-  const rollLine = `<div><strong>Dice rolls:</strong> ${rolls.map(r=>r.value+'('+r.type[0]+')').join(', ')}</div>`;
+function buildChatHTML({actor, weapon, finalRolls, matches, damageResults, areaResults, ammoUsed, burnEnabled, burnValue, burnNote}){
+  const header = `<h3>ORE Attack: ${weapon?.name || weapon?.data?.name || 'Weapon'}</h3>`;
+  const rollLine = `<div><strong>Dice rolled (${finalRolls.length}):</strong> ${finalRolls.map(r=>`${r.value}${r.type==='hard'?'.H':r.type==='wiggle'?'.W':''}`).join(', ')}</div>`;
   const matchesHTML = `<div><strong>Matches:</strong> ${matches.map(m=>`${m.width}x ${m.height}`).join(', ')}</div>`;
-  const resHTML = `<div><strong>Damage results:</strong><ul>${results.map(r=>`<li>${r.damage} damage to ${r.location} (height ${r.height}, width ${r.width})</li>`).join('')}</ul></div>`;
-  const areaHTML = areaRolls.length? `<div><strong>Area rolls (locations):</strong> ${areaRolls.map(a=>`${a.value}->${a.location}`).join(', ')}</div>`:'';
-  const ammoHTML = `<div><em>Ammo used: ${ammoUsed}. Remaining (if tracked on item): ${w.magCurrent||'N/A'}</em></div>`;
-  return header + rollLine + matchesHTML + resHTML + areaHTML + ammoHTML;
+  const resultHTML = `<div><strong>Damage results:</strong><ul>${damageResults.map(d=>`<li>${d.damage} damage to ${d.location} (height ${d.height}, width ${d.width})${burnEnabled?(' — Burn: '+burnValue):''}</li>`).join('')}</ul></div>`;
+  const areaHTML = areaResults.length ? `<div><strong>Area:</strong> ${areaResults.map(a=>`${a.value}->${a.location}`).join(', ')}</div>` : '';
+  const burnHTML = burnNote ? `<div><strong>Burn note:</strong> ${burnNote}</div>` : '';
+  const ammoHTML = `<div><em>Ammo used: ${ammoUsed}</em></div>`;
+  return header + rollLine + matchesHTML + resultHTML + areaHTML + burnHTML + ammoHTML;
 }
