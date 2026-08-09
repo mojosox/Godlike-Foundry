@@ -3,16 +3,25 @@
   "title": "Godlike (Foundry System)",
   "description": "A Foundry VTT system implementing One-Roll Engine mechanics adapted for the Godlike TTRPG.",
   "version": "0.0.1",
-  "author": "mojosox",
+  "authors": [
+    {
+      "name": "mojosox"
+    }
+  ],
   "minimumCoreVersion": "10",
   "compatibleCoreVersion": "14",
   "packs": [],
-  "esmodules": ["scripts/godlike.js","scripts/item-sheet.js","scripts/ore.js"],
-  "styles": ["styles/godlike.css"],
+  "esmodules": [
+    "scripts/godlike.js",
+    "scripts/item-sheet.js",
+    "scripts/ore.js"
+  ],
+  "styles": [
+    "styles/godlike.css"
+  ],
   "languages": [],
   "license": "MIT",
-  "manifest": "system.json",
-  "download": "",
-  "url": "",
+  "download": "https://github.com/mojosox/Godlike-Foundry/archive/refs/heads/main.zip",
+  "url": "https://github.com/mojosox/Godlike-Foundry",
   "readme": "README.md"
 }
