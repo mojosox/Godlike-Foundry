@@ -81,7 +81,7 @@ Hooks.once('init', ()=>{
     }
 
     _refreshWillUI($html, current){
-      // Ensure $html is jQuery
+      // Normalize $html to jQuery (may receive HTMLElement or jQuery)
       if ($html instanceof HTMLElement) {
         $html = $($html);
       } else if (typeof jQuery !== 'undefined' && !($html instanceof jQuery)) {
