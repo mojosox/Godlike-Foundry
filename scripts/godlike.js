@@ -23,8 +23,8 @@ Hooks.once('init', ()=>{
     activateListeners(html){
       super.activateListeners(html);
 
-      // Normalize html to jQuery wrapper for compatibility in Foundry v14 render flows
-      const $html = (typeof jQuery !== 'undefined' && html instanceof jQuery) ? html : $(html);
+      // Ensure html is a jQuery object for consistent API
+      const $html = html instanceof jQuery ? html : $(html);
 
       // Willpower controls
       $html.find('.will-decr').on('click', async ev => {
@@ -74,8 +74,11 @@ Hooks.once('init', ()=>{
       });
     }
 
-    _refreshWillUI(html, current){
-      const $html = (typeof jQuery !== 'undefined' && html instanceof jQuery) ? html : $(html || this.element);
+    _refreshWillUI($html, current){
+      // Ensure $html is jQuery
+      if (!($html instanceof jQuery)) {
+        $html = $($html || this.element);
+      }
       const base = Number(this.actor?.system?.baseWill ?? this.actor?.data?.data?.baseWill ?? 0);
       $html.find('.will-current-input').val(current);
       $html.find('.will-slider').attr('max', base).val(current);
