@@ -20,8 +20,12 @@ class GodlikeWeaponSheet extends ItemSheet {
 
   activateListeners(html){
     super.activateListeners(html);
-    html.find('.reload-btn').on('click', this._onReload.bind(this));
-    html.find('.shoot-btn').on('click', this._onOpenFireDialog.bind(this));
+    
+    // Ensure html is a jQuery object for consistent API
+    const $html = html instanceof jQuery ? html : $(html);
+    
+    $html.find('.reload-btn').on('click', this._onReload.bind(this));
+    $html.find('.shoot-btn').on('click', this._onOpenFireDialog.bind(this));
   }
 
   async _onReload(ev){
