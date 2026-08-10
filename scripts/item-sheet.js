@@ -21,8 +21,14 @@ class GodlikeWeaponSheet extends ItemSheet {
   activateListeners(html){
     super.activateListeners(html);
     
-    // Ensure html is a jQuery object for consistent API
-    const $html = html instanceof jQuery ? html : $(html);
+    // Ensure html is a jQuery object for Foundry v14+ compatibility
+    // Foundry v14 may pass HTMLElement instead of jQuery, so we must wrap it
+    let $html = html;
+    if (html instanceof HTMLElement) {
+      $html = $(html);
+    } else if (typeof jQuery !== 'undefined' && !(html instanceof jQuery)) {
+      $html = $(html);
+    }
     
     $html.find('.reload-btn').on('click', this._onReload.bind(this));
     $html.find('.shoot-btn').on('click', this._onOpenFireDialog.bind(this));
