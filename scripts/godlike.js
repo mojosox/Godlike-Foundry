@@ -5,7 +5,8 @@ Hooks.once('init', ()=>{
 
   class GodlikeActorSheet extends ActorSheet {
     static get defaultOptions(){
-      return mergeObject(super.defaultOptions, {
+      // Use the foundry utils API explicitly to avoid mergeObject not defined errors
+      return foundry.utils.mergeObject(super.defaultOptions, {
         classes:['godlike','sheet','actor'],
         template: 'templates/sheets/godlike-sheet.html',
         width: 980,
@@ -16,7 +17,8 @@ Hooks.once('init', ()=>{
 
     getData(){
       const data = super.getData();
-      data.system = data.actor.data.data;
+      // Provide a convenient alias for templates
+      data.system = data.actor.data?.data || data.actor.system || {};
       return data;
     }
 
@@ -26,7 +28,7 @@ Hooks.once('init', ()=>{
       // Willpower controls
       html.find('.will-decr').on('click', async ev => {
         ev.preventDefault();
-        const cur = Number(this.actor.data.data.willCurrent || 0);
+        const cur = Number(this.actor.data?.data?.willCurrent || 0);
         const newVal = Math.max(0, cur - 1);
         await this.actor.update({'data.willCurrent': newVal});
         this._refreshWillUI(html, newVal);
@@ -34,8 +36,8 @@ Hooks.once('init', ()=>{
 
       html.find('.will-incr').on('click', async ev => {
         ev.preventDefault();
-        const base = Number(this.actor.data.data.baseWill || 0);
-        const cur = Number(this.actor.data.data.willCurrent || base);
+        const base = Number(this.actor.data?.data?.baseWill || 0);
+        const cur = Number(this.actor.data?.data?.willCurrent || base);
         const newVal = Math.min(base, cur + 1);
         await this.actor.update({'data.willCurrent': newVal});
         this._refreshWillUI(html, newVal);
@@ -43,7 +45,7 @@ Hooks.once('init', ()=>{
 
       html.find('.will-current-input').on('change', async ev => {
         const val = Number(ev.currentTarget.value || 0);
-        const base = Number(this.actor.data.data.baseWill || 0);
+        const base = Number(this.actor.data?.data?.baseWill || 0);
         const clamped = Math.max(0, Math.min(base, val));
         await this.actor.update({'data.willCurrent': clamped});
         this._refreshWillUI(html, clamped);
@@ -51,7 +53,7 @@ Hooks.once('init', ()=>{
 
       html.find('.base-will-input').on('change', async ev => {
         const baseVal = Math.max(0, Number(ev.currentTarget.value || 0));
-        const cur = Number(this.actor.data.data.willCurrent || 0);
+        const cur = Number(this.actor.data?.data?.willCurrent || 0);
         const newCur = Math.min(cur, baseVal);
         await this.actor.update({'data.baseWill': baseVal, 'data.willCurrent': newCur});
         this._refreshWillUI(html, newCur);
@@ -64,7 +66,7 @@ Hooks.once('init', ()=>{
 
       html.find('.will-slider').on('change', async ev => {
         const val = Number(ev.currentTarget.value || 0);
-        const base = Number(this.actor.data.data.baseWill || 0);
+        const base = Number(this.actor.data?.data?.baseWill || 0);
         const clamped = Math.max(0, Math.min(base, val));
         await this.actor.update({'data.willCurrent': clamped});
         this._refreshWillUI(html, clamped);
@@ -73,7 +75,7 @@ Hooks.once('init', ()=>{
 
     _refreshWillUI(html, current){
       html = html || this.element;
-      const base = Number(this.actor.data.data.baseWill || 0);
+      const base = Number(this.actor.data?.data?.baseWill || 0);
       html.find('.will-current-input').val(current);
       html.find('.will-slider').attr('max', base).val(current);
       html.find('.will-display').text(current);
@@ -82,8 +84,8 @@ Hooks.once('init', ()=>{
   }
 
   // Register the sheet for the system and for the actor types used by this system
-  // Use the system id from system.json ('godlike-foundry') and register the sheet name 'godlike'
-  Actors.registerSheet('godlike-foundry', 'godlike', GodlikeActorSheet, { types: ['hero','villain','pawn'], makeDefault: true });
+  // Include common Foundry actor types so existing actors open the Godlike sheet as expected
+  Actors.registerSheet('godlike-foundry', 'godlike', GodlikeActorSheet, { types: ['hero','villain','pawn','character','npc'], makeDefault: true });
 
   // Ensure newly created actors have willCurrent defaulted to baseWill
   Hooks.on('createActor', async (actor, options, userId) => {
