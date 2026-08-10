@@ -23,61 +23,64 @@ Hooks.once('init', ()=>{
     activateListeners(html){
       super.activateListeners(html);
 
+      // Normalize html to jQuery wrapper for compatibility in Foundry v14 render flows
+      const $html = (typeof jQuery !== 'undefined' && html instanceof jQuery) ? html : $(html);
+
       // Willpower controls
-      html.find('.will-decr').on('click', async ev => {
+      $html.find('.will-decr').on('click', async ev => {
         ev.preventDefault();
         const cur = Number(this.actor?.system?.willCurrent ?? this.actor?.data?.data?.willCurrent ?? 0);
         const newVal = Math.max(0, cur - 1);
         await this.actor.update({'system.willCurrent': newVal, 'data.willCurrent': newVal});
-        this._refreshWillUI(html, newVal);
+        this._refreshWillUI($html, newVal);
       });
 
-      html.find('.will-incr').on('click', async ev => {
+      $html.find('.will-incr').on('click', async ev => {
         ev.preventDefault();
         const base = Number(this.actor?.system?.baseWill ?? this.actor?.data?.data?.baseWill ?? 0);
         const cur = Number(this.actor?.system?.willCurrent ?? this.actor?.data?.data?.willCurrent ?? base);
         const newVal = Math.min(base, cur + 1);
         await this.actor.update({'system.willCurrent': newVal, 'data.willCurrent': newVal});
-        this._refreshWillUI(html, newVal);
+        this._refreshWillUI($html, newVal);
       });
 
-      html.find('.will-current-input').on('change', async ev => {
+      $html.find('.will-current-input').on('change', async ev => {
         const val = Number(ev.currentTarget.value || 0);
         const base = Number(this.actor?.system?.baseWill ?? this.actor?.data?.data?.baseWill ?? 0);
         const clamped = Math.max(0, Math.min(base, val));
         await this.actor.update({'system.willCurrent': clamped, 'data.willCurrent': clamped});
-        this._refreshWillUI(html, clamped);
+        this._refreshWillUI($html, clamped);
       });
 
-      html.find('.base-will-input').on('change', async ev => {
+      $html.find('.base-will-input').on('change', async ev => {
         const baseVal = Math.max(0, Number(ev.currentTarget.value || 0));
         const cur = Number(this.actor?.system?.willCurrent ?? this.actor?.data?.data?.willCurrent ?? 0);
         const newCur = Math.min(cur, baseVal);
         await this.actor.update({'system.baseWill': baseVal, 'system.willCurrent': newCur, 'data.baseWill': baseVal, 'data.willCurrent': newCur});
-        this._refreshWillUI(html, newCur);
+        this._refreshWillUI($html, newCur);
       });
 
-      html.find('.will-slider').on('input', async ev => {
+      $html.find('.will-slider').on('input', async ev => {
         const val = Number(ev.currentTarget.value || 0);
-        html.find('.will-display').text(val);
+        $html.find('.will-display').text(val);
       });
 
-      html.find('.will-slider').on('change', async ev => {
+      $html.find('.will-slider').on('change', async ev => {
         const val = Number(ev.currentTarget.value || 0);
         const base = Number(this.actor?.system?.baseWill ?? this.actor?.data?.data?.baseWill ?? 0);
         const clamped = Math.max(0, Math.min(base, val));
         await this.actor.update({'system.willCurrent': clamped, 'data.willCurrent': clamped});
-        this._refreshWillUI(html, clamped);
+        this._refreshWillUI($html, clamped);
       });
     }
 
     _refreshWillUI(html, current){
-      html = html || this.element;
+      const $html = (typeof jQuery !== 'undefined' && html instanceof jQuery) ? html : $(html || this.element);
       const base = Number(this.actor?.system?.baseWill ?? this.actor?.data?.data?.baseWill ?? 0);
-      html.find('.will-current-input').val(current);
-      html.find('.will-slider').attr('max', base).val(current);
-      html.find('.will-display').text(current);
-      html.find('.will-max').text(base);
+      $html.find('.will-current-input').val(current);
+      $html.find('.will-slider').attr('max', base).val(current);
+      $html.find('.will-display').text(current);
+      $html.find('.will-max').text(base);
     }
   }
 

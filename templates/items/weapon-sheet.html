@@ -2,28 +2,28 @@
 <section class="sheet actor-sheet">
   <h2>Weapon</h2>
   <div class="sheet-body">
-    <label>Name: <input name="name" /></label>
+    <label>Name: <input name="name" value="{{name}}" /></label>
     <div class="sheet-row">
-      <label>Damage: <input name="data.damage" type="number" /></label>
-      <label>Mag cap: <input name="data.magCap" type="number" /></label>
-      <label>Mag current: <input name="data.magCurrent" type="number" /></label>
+      <label>Damage: <input name="system.damage" type="number" value="{{system.damage}}" /></label>
+      <label>Mag cap: <input name="system.magCap" type="number" value="{{system.magCap}}" /></label>
+      <label>Mag current: <input name="system.magCurrent" type="number" value="{{system.magCurrent}}" /></label>
     </div>
     <div class="sheet-row">
-      <label>Spray (X): <input name="data.spray" type="number" /></label>
-      <label>Slow (X): <input name="data.slow" type="number" /></label>
-      <label>Area (X): <input name="data.area" type="number" /></label>
+      <label>Spray (X): <input name="system.spray" type="number" value="{{system.spray}}" /></label>
+      <label>Slow (X): <input name="system.slow" type="number" value="{{system.slow}}" /></label>
+      <label>Area (X): <input name="system.area" type="number" value="{{system.area}}" /></label>
     </div>
     <div class="sheet-row">
-      <label>Burn (enable): <input name="data.burnEnabled" type="checkbox" value="1" {{#if data.burnEnabled}}checked{{/if}} /></label>
-      <label>Burn (X): <input name="data.burnValue" type="number" value="{{data.burnValue||0}}" min="0" /></label>
-      <label>Burn (note): <input name="data.burnNote" value="{{data.burnNote||''}}" /></label>
+      <label>Burn (enable): <input name="system.burnEnabled" type="checkbox" value="1" {{#if system.burnEnabled}}checked{{/if}} /></label>
+      <label>Burn (X): <input name="system.burnValue" type="number" value="{{system.burnValue}}" min="0" /></label>
+      <label>Burn (note): <input name="system.burnNote" value="{{system.burnNote}}" /></label>
     </div>
     <div class="sheet-row">
-      <button class="button reload-btn">Reload</button>
-      <button class="button shoot-btn" {{#if data.slowCounter}}disabled{{/if}}>Fire</button>
+      <button class="button reload-btn" type="button">Reload</button>
+      <button class="button shoot-btn" type="button" {{#if system.slowCounter}}disabled{{/if}}>Fire</button>
     </div>
-    <div class="sheet-row">Slow counter: <span>{{data.slowCounter}}</span>
-      {{#if data.slowCounter}}
+    <div class="sheet-row">Slow counter: <span>{{system.slowCounter}}</span>
+      {{#if system.slowCounter}}
         <button type="button" class="button manual-decrement">Decrement</button>
       {{/if}}
     </div>
