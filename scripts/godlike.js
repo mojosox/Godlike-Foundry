@@ -1,3 +1,8 @@
+// Polyfill for mergeObject when not present as a global. Uses foundry.utils.mergeObject under the hood.
+if (typeof mergeObject === "undefined" && typeof foundry !== 'undefined' && foundry?.utils?.mergeObject) {
+  window.mergeObject = (...args) => foundry.utils.mergeObject(...args);
+}
+
 // scripts/godlike.js - Actor sheet registration, Willpower handling, and Combat turn hook
 
 Hooks.once('init', ()=>{
@@ -84,8 +89,8 @@ Hooks.once('init', ()=>{
   }
 
   // Register the sheet for the system and for the actor types used by this system
-  // Include common Foundry actor types so existing actors open the Godlike sheet as expected
-  Actors.registerSheet('godlike-foundry', 'godlike', GodlikeActorSheet, { types: ['hero','villain','pawn','character','npc'], makeDefault: true });
+  // Include capitalized types (Hero/Pawn/Villain) as your world uses those, plus common lowercase types
+  Actors.registerSheet('godlike-foundry', 'godlike', GodlikeActorSheet, { types: ['Hero','Villain','Pawn','hero','villain','pawn','character','npc'], makeDefault: true });
 
   // Ensure newly created actors have willCurrent defaulted to baseWill
   Hooks.on('createActor', async (actor, options, userId) => {
