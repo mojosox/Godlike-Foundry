@@ -7,7 +7,7 @@ Hooks.once('init', ()=>{
     static get defaultOptions(){
       return foundry.utils.mergeObject(super.defaultOptions, {
         classes:['godlike','sheet','actor'],
-        template: 'templates/sheets/godlike-sheet.html',
+        template: 'systems/godlike-foundry/templates/sheets/godlike-sheet.html',
         width: 980,
         height: 760,
         tabs: [{navSelector: ".tabs", contentSelector: ".sheet-body", initial: "attributes"}]
@@ -81,18 +81,16 @@ Hooks.once('init', ()=>{
     }
   }
 
-  // Correct Foundry v14-compatible registration signature: (namespace, sheetClass, options)
   Actors.registerSheet('godlike-foundry', GodlikeActorSheet, {
     label: 'Godlike Actor Sheet',
     types: ['Hero','Villain','Pawn','hero','villain','pawn'],
     makeDefault: true
   });
 
-  // Ensure newly created actors have willCurrent defaulted to baseWill
   Hooks.on('createActor', async (actor) => {
     try{
-      const base = Number(getProperty(actor, 'system.baseWill') ?? getProperty(actor, 'data.data.baseWill') ?? getProperty(actor, 'data.attributes.baseWill') ?? 0);
-      const cur = Number(getProperty(actor, 'system.willCurrent') ?? getProperty(actor, 'data.data.willCurrent') ?? -1);
+      const base = Number(foundry.utils.getProperty(actor, 'system.baseWill') ?? foundry.utils.getProperty(actor, 'data.data.baseWill') ?? foundry.utils.getProperty(actor, 'data.attributes.baseWill') ?? 0);
+      const cur = Number(foundry.utils.getProperty(actor, 'system.willCurrent') ?? foundry.utils.getProperty(actor, 'data.data.willCurrent') ?? -1);
       if(base > 0 && (cur < 0 || cur === 0)){
         await actor.update({'system.willCurrent': base, 'data.willCurrent': base});
       }
@@ -101,7 +99,6 @@ Hooks.once('init', ()=>{
     }
   });
 
-  // Combat hook: decrement slowCounter on the actor whose turn just started
   Hooks.on('updateCombat', async (combat, changed) => {
     if (!('turn' in changed)) return;
     try{
@@ -111,7 +108,7 @@ Hooks.once('init', ()=>{
       if(!actor) return;
 
       for(const it of actor.items.filter(i => i.type === 'weapon')){
-        const sc = Number(getProperty(it, 'system.slowCounter') ?? getProperty(it, 'data.data.slowCounter') ?? 0);
+        const sc = Number(foundry.utils.getProperty(it, 'system.slowCounter') ?? foundry.utils.getProperty(it, 'data.data.slowCounter') ?? 0);
         if(sc > 0){
           await it.update({'system.slowCounter': Math.max(0, sc - 1), 'data.slowCounter': Math.max(0, sc - 1)});
           if(sc - 1 <= 0) await it.unsetFlag('one-roll-engine','disabled');

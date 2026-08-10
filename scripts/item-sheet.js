@@ -5,7 +5,7 @@ class GodlikeWeaponSheet extends ItemSheet {
   static get defaultOptions(){
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes:['godlike','sheet','item'],
-      template:'templates/items/weapon-sheet.html',
+      template:'systems/godlike-foundry/templates/items/weapon-sheet.html',
       width:640,
       height:520
     });
@@ -26,7 +26,7 @@ class GodlikeWeaponSheet extends ItemSheet {
 
   async _onReload(ev){
     ev.preventDefault();
-    const cap = Number(getProperty(this.item, 'system.magCap') ?? getProperty(this.item, 'data.data.magCap') ?? 0);
+    const cap = Number(foundry.utils.getProperty(this.item, 'system.magCap') ?? foundry.utils.getProperty(this.item, 'data.data.magCap') ?? 0);
     await this.item.update({'system.magCurrent': cap, 'data.magCurrent': cap});
     ui.notifications.info(`${this.item.name} reloaded to ${cap} rounds.`);
   }
@@ -73,7 +73,7 @@ class GodlikeWeaponSheet extends ItemSheet {
             const hard = Number(fd.get('hard')||0);
             const wiggle = Number(fd.get('wiggle')||0);
 
-            const magCurrent = Number(getProperty(item, 'system.magCurrent') ?? getProperty(item, 'data.data.magCurrent') ?? 0);
+            const magCurrent = Number(foundry.utils.getProperty(item, 'system.magCurrent') ?? foundry.utils.getProperty(item, 'data.data.magCurrent') ?? 0);
             if(magCurrent <= 0){
               ui.notifications.warn(`${item.name} has no ammo.`);
               return;
@@ -90,7 +90,6 @@ class GodlikeWeaponSheet extends ItemSheet {
 }
 
 Hooks.once('init', () => {
-  // Correct Foundry v14 registration signature for item sheets
   Items.registerSheet('godlike-foundry', GodlikeWeaponSheet, {
     label: 'Godlike Weapon Sheet',
     types: ['weapon','magazine'],
