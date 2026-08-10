@@ -1,37 +1,38 @@
-// Ensure a global mergeObject exists. Provide a lightweight fallback deep-merge implementation
-// if Foundry's API hasn't exposed foundry.utils.mergeObject by the time this script runs.
-if (typeof mergeObject === 'undefined') {
-  window.mergeObject = function mergeObjectFallback(target = {}, source = {}, options = {}) {
+// Module-scoped mergeObject binding: prefer Foundry's implementation, fall back to a safe deep-merge.
+const mergeObject = (function() {
+  try {
+    if (typeof foundry !== 'undefined' && foundry?.utils && typeof foundry.utils.mergeObject === 'function') {
+      return foundry.utils.mergeObject.bind(foundry.utils);
+    }
+  } catch (e) {}
+  try {
+    if (typeof window !== 'undefined' && typeof window.mergeObject === 'function') {
+      return window.mergeObject.bind(window);
+    }
+  } catch (e) {}
+  // Lightweight fallback deep-merge (sufficient for defaultOptions merging)
+  return function mergeObjectFallback(target = {}, source = {}, options = {}) {
     const isObject = o => o && typeof o === 'object' && !Array.isArray(o);
-    // Clone target to avoid mutating inputs
     const out = JSON.parse(JSON.stringify(target || {}));
     const src = source || {};
     Object.keys(src).forEach(key => {
       const sv = src[key];
-      if (isObject(sv) && isObject(out[key])) {
-        out[key] = mergeObjectFallback(out[key], sv, options);
-      } else {
-        out[key] = sv;
-      }
+      if (isObject(sv) && isObject(out[key])) out[key] = mergeObjectFallback(out[key], sv, options);
+      else out[key] = sv;
     });
     return out;
   };
-}
+})();
 
 // scripts/godlike.js - Actor sheet registration, Willpower handling, and Combat turn hook
 
 Hooks.once('init', ()=>{
   console.log('Godlike | Initializing Godlike system (Willpower support + combat integration)');
 
-  // If Foundry's utilities are available, prefer them (more complete merge behavior)
-  if (foundry && foundry.utils && typeof foundry.utils.mergeObject === 'function') {
-    window.mergeObject = foundry.utils.mergeObject;
-  }
-
   class GodlikeActorSheet extends ActorSheet {
     static get defaultOptions(){
-      // Prefer foundry.utils.mergeObject if present, otherwise use the global fallback
-      const _merge = (foundry && foundry.utils && typeof foundry.utils.mergeObject === 'function') ? foundry.utils.mergeObject : mergeObject;
+      // Prefer Foundry's merge when available, otherwise use the local mergeObject above
+      const _merge = (typeof foundry !== 'undefined' && foundry?.utils && typeof foundry.utils.mergeObject === 'function') ? foundry.utils.mergeObject : mergeObject;
       return _merge(super.defaultOptions, {
         classes:['godlike','sheet','actor'],
         template: 'templates/sheets/godlike-sheet.html',
