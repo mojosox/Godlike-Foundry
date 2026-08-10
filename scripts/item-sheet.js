@@ -77,7 +77,26 @@ class GodlikeWeaponSheet extends ItemSheet {
           icon: '<i class="fas fa-bullseye"></i>',
           label: 'Fire',
           callback: async (htmlDialog) => {
-            const form = htmlDialog[0].querySelector('form');
+            // Normalize htmlDialog to a DOM element (Foundry v14 may pass HTMLElement or jQuery)
+            let dialogElement = htmlDialog;
+            if (htmlDialog instanceof jQuery) {
+              dialogElement = htmlDialog[0];
+            }
+            
+            // Safety check: ensure we have a valid element
+            if (!dialogElement || !(dialogElement instanceof HTMLElement)) {
+              ui.notifications.error('Dialog element not found. Unable to process fire action.');
+              return;
+            }
+            
+            const form = dialogElement.querySelector('form');
+            
+            // Safety check: ensure form was found
+            if (!form || !(form instanceof HTMLElement)) {
+              ui.notifications.error('Form element not found in dialog. Unable to process fire action.');
+              return;
+            }
+            
             const fd = new FormData(form);
             const modifier = Number(fd.get('modifier')||0);
             const hard = Number(fd.get('hard')||0);
