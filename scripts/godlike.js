@@ -1,6 +1,21 @@
-// Polyfill for mergeObject when not present as a global. Uses foundry.utils.mergeObject under the hood.
-if (typeof mergeObject === "undefined" && typeof foundry !== 'undefined' && foundry?.utils?.mergeObject) {
-  window.mergeObject = (...args) => foundry.utils.mergeObject(...args);
+// Ensure a global mergeObject exists. Provide a lightweight fallback deep-merge implementation
+// if Foundry's API hasn't exposed foundry.utils.mergeObject by the time this script runs.
+if (typeof mergeObject === 'undefined') {
+  window.mergeObject = function mergeObjectFallback(target = {}, source = {}, options = {}) {
+    const isObject = o => o && typeof o === 'object' && !Array.isArray(o);
+    // Clone target to avoid mutating inputs
+    const out = JSON.parse(JSON.stringify(target || {}));
+    const src = source || {};
+    Object.keys(src).forEach(key => {
+      const sv = src[key];
+      if (isObject(sv) && isObject(out[key])) {
+        out[key] = mergeObjectFallback(out[key], sv, options);
+      } else {
+        out[key] = sv;
+      }
+    });
+    return out;
+  };
 }
 
 // scripts/godlike.js - Actor sheet registration, Willpower handling, and Combat turn hook
@@ -8,10 +23,16 @@ if (typeof mergeObject === "undefined" && typeof foundry !== 'undefined' && foun
 Hooks.once('init', ()=>{
   console.log('Godlike | Initializing Godlike system (Willpower support + combat integration)');
 
+  // If Foundry's utilities are available, prefer them (more complete merge behavior)
+  if (foundry && foundry.utils && typeof foundry.utils.mergeObject === 'function') {
+    window.mergeObject = foundry.utils.mergeObject;
+  }
+
   class GodlikeActorSheet extends ActorSheet {
     static get defaultOptions(){
-      // Use the foundry utils API explicitly to avoid mergeObject not defined errors
-      return foundry.utils.mergeObject(super.defaultOptions, {
+      // Prefer foundry.utils.mergeObject if present, otherwise use the global fallback
+      const _merge = (foundry && foundry.utils && typeof foundry.utils.mergeObject === 'function') ? foundry.utils.mergeObject : mergeObject;
+      return _merge(super.defaultOptions, {
         classes:['godlike','sheet','actor'],
         template: 'templates/sheets/godlike-sheet.html',
         width: 980,
@@ -23,7 +44,7 @@ Hooks.once('init', ()=>{
     getData(){
       const data = super.getData();
       // Provide a convenient alias for templates
-      data.system = data.actor.data?.data || data.actor.system || {};
+      data.system = data.actor?.data?.data || data.actor?.system || {};
       return data;
     }
 
@@ -33,7 +54,7 @@ Hooks.once('init', ()=>{
       // Willpower controls
       html.find('.will-decr').on('click', async ev => {
         ev.preventDefault();
-        const cur = Number(this.actor.data?.data?.willCurrent || 0);
+        const cur = Number(this.actor?.data?.data?.willCurrent || 0);
         const newVal = Math.max(0, cur - 1);
         await this.actor.update({'data.willCurrent': newVal});
         this._refreshWillUI(html, newVal);
@@ -41,8 +62,8 @@ Hooks.once('init', ()=>{
 
       html.find('.will-incr').on('click', async ev => {
         ev.preventDefault();
-        const base = Number(this.actor.data?.data?.baseWill || 0);
-        const cur = Number(this.actor.data?.data?.willCurrent || base);
+        const base = Number(this.actor?.data?.data?.baseWill || 0);
+        const cur = Number(this.actor?.data?.data?.willCurrent || base);
         const newVal = Math.min(base, cur + 1);
         await this.actor.update({'data.willCurrent': newVal});
         this._refreshWillUI(html, newVal);
@@ -50,7 +71,7 @@ Hooks.once('init', ()=>{
 
       html.find('.will-current-input').on('change', async ev => {
         const val = Number(ev.currentTarget.value || 0);
-        const base = Number(this.actor.data?.data?.baseWill || 0);
+        const base = Number(this.actor?.data?.data?.baseWill || 0);
         const clamped = Math.max(0, Math.min(base, val));
         await this.actor.update({'data.willCurrent': clamped});
         this._refreshWillUI(html, clamped);
@@ -58,7 +79,7 @@ Hooks.once('init', ()=>{
 
       html.find('.base-will-input').on('change', async ev => {
         const baseVal = Math.max(0, Number(ev.currentTarget.value || 0));
-        const cur = Number(this.actor.data?.data?.willCurrent || 0);
+        const cur = Number(this.actor?.data?.data?.willCurrent || 0);
         const newCur = Math.min(cur, baseVal);
         await this.actor.update({'data.baseWill': baseVal, 'data.willCurrent': newCur});
         this._refreshWillUI(html, newCur);
@@ -71,7 +92,7 @@ Hooks.once('init', ()=>{
 
       html.find('.will-slider').on('change', async ev => {
         const val = Number(ev.currentTarget.value || 0);
-        const base = Number(this.actor.data?.data?.baseWill || 0);
+        const base = Number(this.actor?.data?.data?.baseWill || 0);
         const clamped = Math.max(0, Math.min(base, val));
         await this.actor.update({'data.willCurrent': clamped});
         this._refreshWillUI(html, clamped);
@@ -80,7 +101,7 @@ Hooks.once('init', ()=>{
 
     _refreshWillUI(html, current){
       html = html || this.element;
-      const base = Number(this.actor.data?.data?.baseWill || 0);
+      const base = Number(this.actor?.data?.data?.baseWill || 0);
       html.find('.will-current-input').val(current);
       html.find('.will-slider').attr('max', base).val(current);
       html.find('.will-display').text(current);
